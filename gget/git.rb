@@ -1,9 +1,13 @@
-require "net/http"
 require "uri"
+require "json"
+require "net/http"
 
 class Git
     def initialize(apiUrl = "https://api.github.com")
         @apiUrl = apiUrl
+        if !Dir.exist?("downloads")
+            Dir.mkdir("downloads")
+        end
     end
 
     def parse_uri(repo)
@@ -14,10 +18,18 @@ class Git
         return URI.parse(api_uri)
     end
 
+    def _download_resource(resource_data)
+        puts "Resource, #{resource_data}"
+    end
+
     def get_repo(repo)
         repo_uri = URI.parse(repo)
         repo_api_uri = parse_uri(repo_uri)
-        res = Net::HTTP.get_response repo_api_uri
-        puts "#{res.body}"
+        response = Net::HTTP.get_response(repo_api_uri)
+        data = JSON.parse(response.body)
+
+        data.each do |resource|
+            puts "Got, #{resource}"
+        end
     end
 end
