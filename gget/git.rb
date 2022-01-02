@@ -12,8 +12,7 @@ class Git
     end
 
     def _create_dir(path)
-        puts "Creating #{path}"
-        FileUtils.mkdir_p(path) unless File.exists?(path)
+        FileUtils.mkdir_p(path) unless File.directory?(path)
     end
 
     def parse_uri(repo)
@@ -34,10 +33,10 @@ class Git
 
     def _handle_dir(resource, repo_name)
         
-        current_path = @current_download_folder += "/#{resource['name']}"
-        puts "Current path #{current_path}"
+        current_path = "#{@current_download_folder}/#{resource['name']}"
+        puts "Current #{current_path}"
         _create_dir(current_path)
-        
+
         Dir.chdir(current_path) do
 
             data = _fetch(resource['git_url'])
@@ -48,7 +47,7 @@ class Git
             end
         end
 
-        @current_download_folder.chomp(resource['name'])
+        @current_download_folder.chomp("/#{resource['name']}")
 
     end
 
@@ -60,24 +59,23 @@ class Git
 
     def _handle_tree(resource, repo_name)
         
-        current_path = @current_download_folder += "/#{resource['path']}"
+        current_path = "#{resource['path']}"
        
-        puts "Current path #{current_path}"
-        # FileUtils.mkdir_p("./downloads/myLinkedLists/lib/linkedlist")
-
-        # _create_dir(current_path)
+        _create_dir(current_path)
         
-        # Dir.chdir(current_path) do
+        puts "Here #{current_path}"
 
-        #     data = _fetch(resource['url'])
+        Dir.chdir(current_path) do
 
-        #     data['tree'].each do |res|                
-        #         _handle_resource(res, repo_name)
+            data = _fetch(resource['url'])
 
-        #     end
-        # end
+            data['tree'].each do |res|                
+                _handle_resource(res, repo_name)
 
-        # @current_download_folder.chomp(resource['name'])
+            end
+        end
+
+        @current_download_folder.chomp(resource['name'])
         
     end
     
