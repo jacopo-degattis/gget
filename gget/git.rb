@@ -2,6 +2,7 @@ require "uri"
 require "json"
 require "net/http"
 require "base64"
+require 'fileutils'
 
 class Git
     def initialize(apiUrl = "https://api.github.com")
@@ -11,9 +12,8 @@ class Git
     end
 
     def _create_dir(path)
-        if !Dir.exist?(path)
-            Dir.mkdir(path)
-        end
+        puts "Creating #{path}"
+        FileUtils.mkdir_p(path) unless File.exists?(path)
     end
 
     def parse_uri(repo)
@@ -24,55 +24,81 @@ class Git
         return URI.parse(api_uri), repo_name
     end
 
-    def _download_resource(resource_data)
-        puts "Resource, #{resource_data}"
+    def _fetch(uri)
+        url = URI.parse(uri)
+        # Catch error, if response status != 200
+        response = Net::HTTP.get_response(url)
+        data = JSON.parse(response.body)
+        return data
     end
 
-    def _handle_resource(resource, repo_name)
-        if resource['type'] == "dir"
-            current_path = "#{@current_download_folder}/#{repo_name}/#{resource['name']}"
-            _create_dir(current_path)
-            @current_download_folder += resource['name']
-            Dir.chdir(current_path) do
-                # TODO: absolutely improve, create function just to handle http requests
-                uri = URI.parse(resource['git_url'])
-                response = Net::HTTP.get_response(uri)
-                data = JSON.parse(response.body)
+    def _handle_dir(resource, repo_name)
+        
+        current_path = @current_download_folder += "/#{resource['name']}"
+        puts "Current path #{current_path}"
+        _create_dir(current_path)
+        
+        Dir.chdir(current_path) do
 
-                data['tree'].each do |res|                
-                    _handle_resource(res, repo_name)
-                end
+            data = _fetch(resource['git_url'])
+
+            data['tree'].each do |res|                
+                _handle_resource(res, repo_name)
+
             end
-        elsif resource['type'] == 'blob'
-            filename = resource['path']
-            uri = URI.parse(resource['url'])
-            info = Net::HTTP.get_response(uri)
-            b64_data = JSON.parse(info.body)['content']
-            byte_data = Base64.decode64(b64_data)
-            new_file = File.open(filename, "w") { |f| f.write(byte_data) }
-        elsif resource['type'] == 'tree'
-            path = resource['path']
-            current_path = "#{@current_download_folder}/#{repo_name}/#{resource['name']}"
-            # _create_dir(current_path)
-            # Dir.chdir(current_path) do
-            #     uri = URI.parse(resource['git_url'])
-            #     response = Net::HTTP.get_response(uri)
-            #     data = JSON.parse(response.body)
+        end
 
-            #     data['tree'].each do |res|                
-            #         _handle_resource(res, repo_name)
-            #     end
-            # end
+        @current_download_folder.chomp(resource['name'])
+
+    end
+
+    def _handle_blob(resource, repo_name)
+        data = _fetch(resource['url'])['content']
+        byte_data = Base64.decode64(data)
+        new_file = File.open(resource['path'], "w") { |f| f.write(byte_data) }
+    end
+
+    def _handle_tree(resource, repo_name)
+        
+        current_path = @current_download_folder += "/#{resource['path']}"
+       
+        puts "Current path #{current_path}"
+        # FileUtils.mkdir_p("./downloads/myLinkedLists/lib/linkedlist")
+
+        # _create_dir(current_path)
+        
+        # Dir.chdir(current_path) do
+
+        #     data = _fetch(resource['url'])
+
+        #     data['tree'].each do |res|                
+        #         _handle_resource(res, repo_name)
+
+        #     end
+        # end
+
+        # @current_download_folder.chomp(resource['name'])
+        
+    end
+    
+    def _handle_resource(resource, repo_name)
+        case resource['type']
+            when "dir"
+                _handle_dir(resource, repo_name)
+            when "blob"
+                _handle_blob(resource, repo_name)  
+            when "tree"
+                _handle_tree(resource, repo_name)
         end
     end
 
     def get_repo(repo)
         repo_uri = URI.parse(repo)
         repo_api_uri, repo_name = parse_uri(repo_uri)
-        puts "#{repo_name}"
         response = Net::HTTP.get_response(repo_api_uri)
         data = JSON.parse(response.body)
-        _create_dir("#{@current_download_folder}/#{repo_name}")
+        @current_download_folder += "/#{repo_name}"
+        _create_dir("#{@current_download_folder}")
 
         data.each do |resource|
             _handle_resource(resource, repo_name)
