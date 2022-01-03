@@ -83,13 +83,15 @@ class Git
     end
 
     def _handle_blob(resource, repo_name)
+        print("[!] Downloading #{resource['path']}\r")
+
         data = _fetch(resource['url'])['content']
         byte_data = Base64.decode64(data)
         new_file = File.open(resource['path'], "w") { |f| f.write(byte_data) }
     end
 
     def _handle_tree(resource, repo_name)
-        
+
         current_path = "#{resource['path']}"
        
         _create_dir(current_path)
@@ -109,6 +111,7 @@ class Git
     end
 
     def _handle_file(resource, repo_name)
+        print("[!] Downloading #{resource['name']}\r")
         data = _fetch_raw(resource['download_url'])
 
         file_path = "#{@current_download_folder}/"
@@ -141,5 +144,7 @@ class Git
         data.each do |resource|
             _handle_resource(resource, repo_name)
         end
+
+        print("[+] Succesfully downloaded #{repo_name} !")
     end
 end
