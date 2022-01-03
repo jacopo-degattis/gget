@@ -31,6 +31,13 @@ class Git
         return data
     end
 
+    def _fetch_raw(uri)
+        url = URI.parse(uri)
+        # Catch error, if response status != 200
+        response = Net::HTTP.get_response(url)
+        return response.body
+    end
+
     def _handle_dir(resource, repo_name)
         
         current_path = "#{@current_download_folder}/#{resource['name']}"
@@ -78,6 +85,12 @@ class Git
         @current_download_folder.chomp(resource['name'])
         
     end
+
+    def _handle_file(resource, repo_name)
+        data = _fetch_raw(resource['download_url'])
+        file_path = "#{@current_download_folder}/#{repo_name}/#{resource['path']}"
+        new_file = File.open(resource['name'], "w") { |f| f.write(data) }
+    end
     
     def _handle_resource(resource, repo_name)
         case resource['type']
@@ -87,12 +100,15 @@ class Git
                 _handle_blob(resource, repo_name)  
             when "tree"
                 _handle_tree(resource, repo_name)
+            when "file"
+                _handle_file(resource, repo_name)
         end
     end
 
     def get_repo(repo)
         repo_uri = URI.parse(repo)
         repo_api_uri, repo_name = parse_uri(repo_uri)
+        puts "API, #{repo_api_uri}"
         response = Net::HTTP.get_response(repo_api_uri)
         data = JSON.parse(response.body)
         @current_download_folder += "/#{repo_name}"
