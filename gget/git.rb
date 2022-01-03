@@ -5,8 +5,8 @@ require "base64"
 require 'fileutils'
 
 class Git
-    def initialize(apiUrl = "https://api.github.com")
-        @apiUrl = apiUrl
+    def initialize(api_url = "https://api.github.com")
+        @api_url = api_url
         @current_download_folder = "downloads"
         _create_dir(@current_download_folder)
     end
@@ -16,18 +16,16 @@ class Git
     end
 
     def _parse_nested_uri(repo)
-        puts "Nested"
         repo_info, repo_path = repo.path.split("/tree/")
         owner, repo_name = repo_info.split("/")[1..-1]
         path_without_branch = repo_path.split("/")[1..-1].join("/")
-        api_uri = "#{@apiUrl}/repos/#{owner}/#{repo_name}/contents/#{path_without_branch}"
+        api_uri = "#{@api_url}/repos/#{owner}/#{repo_name}/contents/#{path_without_branch}"
         return URI.parse(api_uri), repo_name
     end
 
     def _parse_unnested_uri(repo)
-        puts "Unnested"
         owner, name = repo.to_s.split("/")[-2..-1]
-        api_uri = "#{@apiUrl}/repos/#{owner}/#{name}/contents/"
+        api_uri = "#{@api_url}/repos/#{owner}/#{name}/contents/"
         return URI.parse(api_uri), name
     end
 
@@ -60,7 +58,6 @@ class Git
     def _handle_dir(resource, repo_name)
         
         current_path = "#{@current_download_folder}/#{resource['name']}"
-        puts "Current #{current_path}"
         _create_dir(current_path)
 
         Dir.chdir(current_path) do
@@ -89,8 +86,6 @@ class Git
        
         _create_dir(current_path)
         
-        puts "Here #{current_path}"
-
         Dir.chdir(current_path) do
 
             data = _fetch(resource['url'])
@@ -109,8 +104,6 @@ class Git
         data = _fetch_raw(resource['download_url'])
 
         file_path = "#{@current_download_folder}/"
-
-        puts "Path, #{file_path}"
 
         Dir.chdir(file_path) do
             new_file = File.open(resource['name'], "w") { |f| f.write(data) }
@@ -131,9 +124,7 @@ class Git
     end
 
     def get_repo(repo)
-        repo_uri = URI.parse(repo)
-        repo_api_uri, repo_name = parse_uri(repo_uri)
-        puts "API, #{repo_api_uri}"
+        repo_api_uri, repo_name = parse_uri(repo)
         response = Net::HTTP.get_response(repo_api_uri)
         data = JSON.parse(response.body)
         @current_download_folder += "/#{repo_name}"
