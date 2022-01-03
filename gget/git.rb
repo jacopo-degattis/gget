@@ -5,8 +5,8 @@ require "base64"
 require 'fileutils'
 
 class Git
-    def initialize(apiUrl = "https://api.github.com")
-        @apiUrl = apiUrl
+    def initialize(api_url = "https://api.github.com")
+        @api_url = api_url
         @current_download_folder = "downloads"
         _create_dir(@current_download_folder)
     end
@@ -19,13 +19,13 @@ class Git
         repo_info, repo_path = repo.path.split("/tree/")
         owner, repo_name = repo_info.split("/")[1..-1]
         path_without_branch = repo_path.split("/")[1..-1].join("/")
-        api_uri = "#{@apiUrl}/repos/#{owner}/#{repo_name}/contents/#{path_without_branch}"
+        api_uri = "#{@api_url}/repos/#{owner}/#{repo_name}/contents/#{path_without_branch}"
         return URI.parse(api_uri), repo_name
     end
 
     def _parse_unnested_uri(repo)
         owner, name = repo.to_s.split("/")[-2..-1]
-        api_uri = "#{@apiUrl}/repos/#{owner}/#{name}/contents/"
+        api_uri = "#{@api_url}/repos/#{owner}/#{name}/contents/"
         return URI.parse(api_uri), name
     end
 
