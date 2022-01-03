@@ -15,12 +15,31 @@ class Git
         FileUtils.mkdir_p(path) unless File.directory?(path)
     end
 
-    def parse_uri(repo)
+    def _parse_nested_uri(repo)
+        puts "Nested"
         repo_info, repo_path = repo.path.split("/tree/")
         owner, repo_name = repo_info.split("/")[1..-1]
         path_without_branch = repo_path.split("/")[1..-1].join("/")
         api_uri = "#{@apiUrl}/repos/#{owner}/#{repo_name}/contents/#{path_without_branch}"
         return URI.parse(api_uri), repo_name
+    end
+
+    def _parse_unnested_uri(repo)
+        puts "Unnested"
+        owner, name = repo.to_s.split("/")[-2..-1]
+        api_uri = "#{@apiUrl}/repos/#{owner}/#{name}/contents/"
+        return URI.parse(api_uri), name
+    end
+
+    def parse_uri(repo)
+        case repo.to_s.include?("tree")
+            when true
+                uri, name = _parse_nested_uri(repo)
+            when false
+                uri, name = _parse_unnested_uri(repo)
+        end
+
+        return uri, name
     end
 
     def _fetch(uri)
