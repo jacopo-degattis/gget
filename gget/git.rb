@@ -88,8 +88,14 @@ class Git
 
     def _handle_file(resource, repo_name)
         data = _fetch_raw(resource['download_url'])
-        file_path = "#{@current_download_folder}/#{repo_name}/#{resource['path']}"
-        new_file = File.open(resource['name'], "w") { |f| f.write(data) }
+
+        file_path = "#{@current_download_folder}/"
+
+        puts "Path, #{file_path}"
+
+        Dir.chdir(file_path) do
+            new_file = File.open(resource['name'], "w") { |f| f.write(data) }
+        end
     end
     
     def _handle_resource(resource, repo_name)
