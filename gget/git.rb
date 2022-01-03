@@ -42,17 +42,25 @@ class Git
 
     def _fetch(uri)
         url = URI.parse(uri)
-        # Catch error, if response status != 200
         response = Net::HTTP.get_response(url)
-        data = JSON.parse(response.body)
-        return data
+        case response
+            when Net::HTTPSuccess
+                data = JSON.parse(response.body)
+                return data
+            else
+                raise Exception.new "ERROR: An error occurred while fetching: #{uri}"
+        end
     end
 
     def _fetch_raw(uri)
         url = URI.parse(uri)
-        # Catch error, if response status != 200
         response = Net::HTTP.get_response(url)
-        return response.body
+        case response
+            when Net::HTTPSuccess
+                return response.body
+            else
+                raise Exception.new "ERROR: An error occurred while fetching: #{uri}"
+        end
     end
 
     def _handle_dir(resource, repo_name)
