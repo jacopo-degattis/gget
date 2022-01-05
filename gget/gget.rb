@@ -7,7 +7,7 @@ VERSION = "0.1.0"
 $AUTHENTICATED = false
 
 def _print_help()
-    helper = "gget #{VERSION}\nUtility to clone repo subfolders and files\n\nUSAGE:\n\tgget <repo_uri> "
+    helper = "gget #{VERSION}\nUtility to clone repo subfolders and files\n\nUSAGE:\n\tgget <repo_uri>\n\n\t-a Make authenticated requests\n\n"
     puts helper
 end
 
