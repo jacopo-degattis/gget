@@ -24,7 +24,9 @@ chmod +x gget.rb
 **_Finally, run the script_**
 
 ```bash
-./gget.rb
+./gget.rb <repo_uri>
+
+If you want to get a private repo just use '-a' option and provide github username and token.
 ```
 
 ## LICENSE
