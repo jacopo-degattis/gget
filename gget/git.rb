@@ -121,7 +121,7 @@ class Git
             data = _fetch(resource['url'], authenticated)
 
             data['tree'].each do |res|                
-                _handle_resource(res, repo_name)
+                _handle_resource(res, repo_name, authenticated)
 
             end
         end
