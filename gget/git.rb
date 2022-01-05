@@ -8,6 +8,7 @@ class Git
     def initialize(api_url = "https://api.github.com")
         @api_url = api_url
         @current_download_folder = "downloads"
+        @authenticated_headers = ""
         _create_dir(@current_download_folder)
     end
 
@@ -40,9 +41,19 @@ class Git
         return uri, name
     end
 
-    def _fetch(uri)
-        url = URI.parse(uri)
-        response = Net::HTTP.get_response(url)
+    def _fetch(uri, authenticated)
+
+        url = URI.parse(uri.to_s)
+        req = Net::HTTP::Get.new(url)
+
+        if authenticated
+            req['Authorization'] = @authenticated_headers
+        end
+
+        http = Net::HTTP.new(url.host, url.port)
+        http.use_ssl = true
+        response = http.request(req)
+
         case response
             when Net::HTTPSuccess
                 data = JSON.parse(response.body)
@@ -52,9 +63,18 @@ class Git
         end
     end
 
-    def _fetch_raw(uri)
+    def _fetch_raw(uri, authenticated)
         url = URI.parse(uri)
-        response = Net::HTTP.get_response(url)
+        req = Net::HTTP::Get.new(url)
+
+        if authenticated
+            req['Authorization'] = @authenticated_headers
+        end
+
+        http = Net::HTTP.new(url.host, url.port)
+        http.use_ssl = true
+        response = http.request(req)
+
         case response
             when Net::HTTPSuccess
                 return response.body
@@ -63,17 +83,17 @@ class Git
         end
     end
 
-    def _handle_dir(resource, repo_name)
+    def _handle_dir(resource, repo_name, authenticated)
         
         current_path = "#{@current_download_folder}/#{resource['name']}"
         _create_dir(current_path)
 
         Dir.chdir(current_path) do
 
-            data = _fetch(resource['git_url'])
+            data = _fetch(resource['git_url'], authenticated)
 
             data['tree'].each do |res|                
-                _handle_resource(res, repo_name)
+                _handle_resource(res, repo_name, authenticated)
 
             end
         end
@@ -82,15 +102,15 @@ class Git
 
     end
 
-    def _handle_blob(resource, repo_name)
+    def _handle_blob(resource, repo_name, authenticated)
         print("[!] Downloading #{resource['path']}\r")
 
-        data = _fetch(resource['url'])['content']
+        data = _fetch(resource['url'], authenticated)['content']
         byte_data = Base64.decode64(data)
         new_file = File.open(resource['path'], "w") { |f| f.write(byte_data) }
     end
 
-    def _handle_tree(resource, repo_name)
+    def _handle_tree(resource, repo_name, authenticated)
 
         current_path = "#{resource['path']}"
        
@@ -98,7 +118,7 @@ class Git
         
         Dir.chdir(current_path) do
 
-            data = _fetch(resource['url'])
+            data = _fetch(resource['url'], authenticated)
 
             data['tree'].each do |res|                
                 _handle_resource(res, repo_name)
@@ -110,9 +130,9 @@ class Git
         
     end
 
-    def _handle_file(resource, repo_name)
+    def _handle_file(resource, repo_name, authenticated)
         print("[!] Downloading #{resource['name']}\r")
-        data = _fetch_raw(resource['download_url'])
+        data = _fetch_raw(resource['download_url'], authenticated)
 
         file_path = "#{@current_download_folder}/"
 
@@ -121,28 +141,43 @@ class Git
         end
     end
     
-    def _handle_resource(resource, repo_name)
+    def _handle_resource(resource, repo_name, authenticated)
         case resource['type']
             when "dir"
-                _handle_dir(resource, repo_name)
+                _handle_dir(resource, repo_name, authenticated)
             when "blob"
-                _handle_blob(resource, repo_name)  
+                _handle_blob(resource, repo_name, authenticated)  
             when "tree"
-                _handle_tree(resource, repo_name)
+                _handle_tree(resource, repo_name, authenticated)
             when "file"
-                _handle_file(resource, repo_name)
+                _handle_file(resource, repo_name, authenticated)
         end
     end
 
-    def get_repo(repo)
+    def _load_creds()
+        if !File.exist?(".gget-cache")
+            return
+        end
+
+        file = File.read(".gget-cache")
+        user_data = JSON.parse(file)
+        encoded_credentials = Base64.strict_encode64("#{user_data['username']}:#{user_data['token']}")
+        @authenticated_headers = "Basic #{encoded_credentials}"
+    end
+
+    def get_repo(repo, authenticated=false)
+
+        if authenticated
+            _load_creds()
+        end
+
         repo_api_uri, repo_name = parse_uri(repo)
-        response = Net::HTTP.get_response(repo_api_uri)
-        data = JSON.parse(response.body)
+        data = _fetch(repo_api_uri, authenticated)
         @current_download_folder += "/#{repo_name}"
         _create_dir("#{@current_download_folder}")
 
         data.each do |resource|
-            _handle_resource(resource, repo_name)
+            _handle_resource(resource, repo_name, authenticated)
         end
 
         print("[+] Succesfully downloaded #{repo_name} !")
