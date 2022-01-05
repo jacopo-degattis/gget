@@ -29,6 +29,13 @@ chmod +x gget.rb
 If you want to get a private repo just use '-a' option and provide github username and token.
 ```
 
+## How to get your Github token
+
+- First go to github.com and login into you account
+- Then click on your profile pic -> settings -> developer settings -> personal access tokens
+- Now generate a new token and give for simplicity all permissions. It's better to give token just the
+  nedded permissions.
+
 ## LICENSE
 
 [MIT](LICENSE)
